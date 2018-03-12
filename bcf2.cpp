@@ -129,7 +129,7 @@ int main ()
    constexpr auto pi = M_PI;
    constexpr auto sps = 44100;               // 20000;
    constexpr auto min_freq = 50.0;
-   constexpr auto max_freq = 400.0;
+   constexpr auto max_freq = 500.0;
    constexpr float freq = 261.626;           // 82.41;
 
    // These are in samples
@@ -140,12 +140,13 @@ int main ()
    ////////////////////////////////////////////////////////////////////////////
    // Generate a test signal
 
-   constexpr float noise_level = 0.0;  // Noise level (dB)
-   constexpr float _1st_level = 0.3;   // First harmonic level
-   constexpr float _2nd_level = 0.4;   // Second harmonic level
-   constexpr float _3rd_level = 0.3;   // Third harmonic level
-   constexpr auto offset = period - 5; // Initial offset
+   constexpr float noise_level = 0.0;     // Noise level (dB)
+   constexpr float _1st_level = 0.3;      // First harmonic level
+   constexpr float _2nd_level = 0.4;      // Second harmonic level
+   constexpr float _3rd_level = 0.3;      // Third harmonic level
 
+   constexpr float offset = 0;
+   // constexpr float offset = period - 1.3; // Initial offset (some odd number)
    std::size_t buff_size = smallest_pow2<std::size_t>(std::ceil(max_period)) * 2;
 
    std::vector<float> signal(buff_size);
@@ -245,7 +246,7 @@ int main ()
    auto dy = *first - prev;
    auto dx1 = -prev / dy;
 
-   auto last = first + est_index - 1;
+   auto last = signal.begin() + est_index - 1;
    for (; *last <= 0.0f; ++last)
       prev = *last;
    dy = *last - prev;
