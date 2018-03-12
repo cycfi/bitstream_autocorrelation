@@ -58,17 +58,14 @@ struct bitstream
    }
 
    template <typename F>
-   void auto_correlate(F f)
+   void auto_correlate(std::size_t start_pos, F f)
    {
-      // The first will always be zero:
-      f(0, 0);
-
       auto mid_array = (array_size / 2) - 1;
       auto mid_pos = size / 2;
-      auto index = 0;
-      auto shift = 1;
+      auto index = start_pos / nbits;
+      auto shift = start_pos % nbits;
 
-      for (auto pos = 1; pos != mid_pos; ++pos)
+      for (auto pos = start_pos; pos != mid_pos; ++pos)
       {
          auto* p1 = bits.data();
          auto* p2 = bits.data() + index;
@@ -130,26 +127,32 @@ struct noise
 int main ()
 {
    constexpr auto pi = M_PI;
-   constexpr auto sps = 44100;                     //  Samples per second
+   constexpr auto sps = 44100; //  Samples per second
+   constexpr auto min_freq = 200.0;
+   constexpr auto max_freq = 1000.0;
+   constexpr float freq = 261.626; // 82.41;
+
+   // These are in samples
+   constexpr float period = float(sps) / freq;
+   constexpr float min_period = float(sps) / max_freq;
+   constexpr float max_period = float(sps) / min_freq;
 
    ////////////////////////////////////////////////////////////////////////////
    // Generate a test signal
 
-   constexpr float freq = 440; // 82.41;
-   constexpr float period  = float(sps) / freq;    // period
-   constexpr float noise_level = 0.0;              // Noise level
-   constexpr float _1st_level = 0.3;               // First harmonic level
-   constexpr float _2nd_level = 0.4;               // Second harmonic level
-   constexpr float _3rd_level = 0.3;               // Third harmonic level
+   constexpr float noise_level = 0.0;  // Noise level (dB)
+   constexpr float _1st_level = 0.3;   // First harmonic level
+   constexpr float _2nd_level = 0.4;   // Second harmonic level
+   constexpr float _3rd_level = 0.3;   // Third harmonic level
 
-   std::size_t buff_size = smallest_pow2<std::size_t>(std::ceil(sps / freq)) * 2;
+   std::size_t buff_size = smallest_pow2<std::size_t>(std::ceil(max_period)) * 2;
 
    std::vector<float> signal(buff_size);
    noise ns; // noise
 
    for (int i = 0; i < buff_size; i++)
    {
-      signal[i] = 0; // noise_level * ns();                       // Noise
+      signal[i] = noise_level * ns();                       // Noise
       signal[i] += _1st_level *  sin(2 * pi * i / period);  // First harmonic
       signal[i] += _2nd_level *  sin(4 * pi * i / period);  // Second harmonic
       signal[i] += _3rd_level *  sin(6 * pi * i / period);  // Third harmonic
@@ -174,12 +177,12 @@ int main ()
    std::uint32_t min_count = UINT32_MAX;
    std::size_t est_index = 0;
    std::vector<std::uint32_t> corr(buff_size / 2);
-   bin.auto_correlate(
+   bin.auto_correlate(min_period,
       [&corr, &max_count, &min_count, &est_index](auto pos, auto count)
       {
          corr[pos] = count;
          max_count = std::max<std::uint32_t>(max_count, count);
-         if (pos && count < min_count)
+         if (count < min_count)
          {
             min_count = count;
             est_index = pos;
@@ -188,43 +191,35 @@ int main ()
    );
 
    ////////////////////////////////////////////////////////////////////////////
-   // Print the signal, zero crossings and correlations
-   // auto mid_pos = buff_size / 2;
-   // for (int i = 0; i < buff_size; i++)
-   // {
-   //    if (i < mid_pos)
-   //       std::cout << signal[i] << ", " << bin.get(i) << ", " << float(corr[i])/max_count << std::endl;
-   //    else
-   //       std::cout << signal[i] << ", " << bin.get(i) << std::endl;
-   // }
+   // Print the signal, zero crossings and correlations (for graphing)
+#if 0
+   auto mid_pos = buff_size / 2;
+   for (int i = 0; i < buff_size; i++)
+   {
+      if (i < mid_pos)
+         std::cout << signal[i] << ", " << bin.get(i) << ", " << float(corr[i])/max_count << std::endl;
+      else
+         std::cout << signal[i] << ", " << bin.get(i) << std::endl;
+   }
+#endif
 
    ////////////////////////////////////////////////////////////////////////////
    // Estimate the pitch
 
-   // float mid   = corr[est_index];
-   // float left  = corr[est_index-1];
-   // float right = corr[est_index+1];
-
-   // //  assert( 2*mid - left - right > 0.0 );
-
-   // float shift = 0.5 * (right-left) / (2 * mid - left - right);
-   // float est_freq = est_index + shift;
-
-/////////////////////////////////////
    float prev = 0;
-   auto p = signal.begin();
-   for (; *p <= 0.0f; ++p)
-      prev = *p;
-   auto dy = *p - prev;
+   auto first = signal.begin();
+   for (; *first <= 0.0f; ++first)
+      prev = *first;
+   auto dy = *first - prev;
    auto dx1 = -prev / dy;
 
-   auto p2 = signal.begin() + est_index - 1;
-   for (; *p2 <= 0.0f; ++p2)
-      prev = *p2;
-   dy = *p2 - prev;
+   auto last = signal.begin() + est_index - 1;
+   for (; *last <= 0.0f; ++last)
+      prev = *last;
+   dy = *last - prev;
    auto dx2 = -prev / dy;
 
-   float samples_period = (p2-p) + (dx2 - dx1);
+   float samples_period = (last-first) + (dx2 - dx1);
    float est_freq = sps / samples_period;
 
    std::cout << "Actual Frequency: " << freq << " Hz" << std::endl;
