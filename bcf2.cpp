@@ -244,21 +244,23 @@ int main ()
    ////////////////////////////////////////////////////////////////////////////
    // Estimate the pitch
 
+   // Get the start edge
    float prev = 0;
-   auto first = signal.begin();
-   for (; *first <= 0.0f; ++first)
-      prev = *first;
-   auto dy = *first - prev;
+   auto start_edge = signal.begin();
+   for (; *start_edge <= 0.0f; ++start_edge)
+      prev = *start_edge;
+   auto dy = *start_edge - prev;
    auto dx1 = -prev / dy;
 
-   auto last = signal.begin() + est_index - 1;
-   for (; *last <= 0.0f; ++last)
-      prev = *last;
-   dy = *last - prev;
+   // Get the next edge
+   auto next_edge = signal.begin() + est_index - 1;
+   for (; *next_edge <= 0.0f; ++next_edge)
+      prev = *next_edge;
+   dy = *next_edge - prev;
    auto dx2 = -prev / dy;
 
-   float samples_period = (last-first) + (dx2 - dx1);
-   float est_freq = sps / samples_period;
+   float n_samples = (next_edge - start_edge) + (dx2 - dx1);
+   float est_freq = sps / n_samples;
 
    std::cout << "Actual Frequency: " << freq << " Hz" << std::endl;
    std::cout << "Estimated Frequency: " << est_freq << " Hz" << std::endl;
