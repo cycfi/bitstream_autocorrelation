@@ -127,10 +127,10 @@ struct noise
 int main ()
 {
    constexpr auto pi = M_PI;
-   constexpr auto sps = 44100; //  Samples per second
-   constexpr auto min_freq = 200.0;
-   constexpr auto max_freq = 1000.0;
-   constexpr float freq = 261.626; // 82.41;
+   constexpr auto sps = 44100;               // 20000;
+   constexpr auto min_freq = 50.0;
+   constexpr auto max_freq = 400.0;
+   constexpr float freq = 261.626;           // 82.41;
 
    // These are in samples
    constexpr float period = float(sps) / freq;
@@ -144,6 +144,7 @@ int main ()
    constexpr float _1st_level = 0.3;   // First harmonic level
    constexpr float _2nd_level = 0.4;   // Second harmonic level
    constexpr float _3rd_level = 0.3;   // Third harmonic level
+   constexpr auto offset = period - 5; // Initial offset
 
    std::size_t buff_size = smallest_pow2<std::size_t>(std::ceil(max_period)) * 2;
 
@@ -152,10 +153,11 @@ int main ()
 
    for (int i = 0; i < buff_size; i++)
    {
+      auto angle = (i + offset) / period;
       signal[i] = noise_level * ns();                       // Noise
-      signal[i] += _1st_level *  sin(2 * pi * i / period);  // First harmonic
-      signal[i] += _2nd_level *  sin(4 * pi * i / period);  // Second harmonic
-      signal[i] += _3rd_level *  sin(6 * pi * i / period);  // Third harmonic
+      signal[i] += _1st_level *  std::sin(2 * pi * angle);  // First harmonic
+      signal[i] += _2nd_level *  std::sin(4 * pi * angle);  // Second harmonic
+      signal[i] += _3rd_level *  std::sin(6 * pi * angle);  // Third harmonic
    }
 
    ////////////////////////////////////////////////////////////////////////////
@@ -173,11 +175,13 @@ int main ()
    ////////////////////////////////////////////////////////////////////////////
    // Binary Auto-correlation
 
+#define PRINTING 0
+
    std::uint32_t max_count = 0;
    std::uint32_t min_count = UINT32_MAX;
    std::size_t est_index = 0;
    std::vector<std::uint32_t> corr(buff_size / 2);
-   bin.auto_correlate(min_period,
+   bin.auto_correlate(PRINTING? 0 : min_period,
       [&corr, &max_count, &min_count, &est_index](auto pos, auto count)
       {
          corr[pos] = count;
@@ -192,7 +196,7 @@ int main ()
 
    ////////////////////////////////////////////////////////////////////////////
    // Print the signal, zero crossings and correlations (for graphing)
-#if 0
+#if PRINTING
    auto mid_pos = buff_size / 2;
    for (int i = 0; i < buff_size; i++)
    {
@@ -201,7 +205,35 @@ int main ()
       else
          std::cout << signal[i] << ", " << bin.get(i) << std::endl;
    }
+
+   return 0; // return now
 #endif
+
+   ////////////////////////////////////////////////////////////////////////////
+   // Handle harmonics
+   auto sub_threshold = 0.1 * max_count;
+   int max_div = est_index / min_period;
+   for (int div = max_div; div != 0; div--)
+   {
+      bool all_strong = true;
+      float mul = 1.0f / div;
+
+      for (int k = 1; k != div; k++)
+      {
+         int sub_period = k * est_index * mul;
+         if (corr[sub_period] > sub_threshold)
+         {
+            all_strong = false;
+            break;
+         }
+      }
+
+      if (all_strong)
+      {
+         est_index = est_index * mul;
+         break;
+      }
+   }
 
    ////////////////////////////////////////////////////////////////////////////
    // Estimate the pitch
@@ -213,7 +245,7 @@ int main ()
    auto dy = *first - prev;
    auto dx1 = -prev / dy;
 
-   auto last = signal.begin() + est_index - 1;
+   auto last = first + est_index - 1;
    for (; *last <= 0.0f; ++last)
       prev = *last;
    dy = *last - prev;
