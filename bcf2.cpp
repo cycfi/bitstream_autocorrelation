@@ -217,7 +217,7 @@ int main ()
 
    ////////////////////////////////////////////////////////////////////////////
    // Handle harmonics
-   auto sub_threshold = 0.1 * max_count;
+   auto sub_threshold = 0.15 * max_count;
    int max_div = est_index / min_period;
    for (int div = max_div; div != 0; div--)
    {
@@ -265,6 +265,7 @@ int main ()
    std::cout << "Actual Frequency: " << freq << " Hz" << std::endl;
    std::cout << "Estimated Frequency: " << est_freq << " Hz" << std::endl;
    std::cout << "Error: " << 1200.0 * std::log2(est_freq / freq) << " cents" << std::endl;
+   std::cout << "Periodicity: " <<  1.0 - (float(min_count) / max_count) << std::endl;
 
    return 0;
 }
