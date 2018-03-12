@@ -1,3 +1,8 @@
+/*=============================================================================
+   Copyright (c) 2018 Cycfi Research. All rights reserved.
+
+   Distributed under the MIT License [ https://opensource.org/licenses/MIT ]
+=============================================================================*/
 #include <iostream>
 #include <cmath>
 #include <array>

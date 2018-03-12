@@ -1,3 +1,8 @@
+#==============================================================================
+#  Copyright (c) 2018 Cycfi Research. All rights reserved.
+#
+#  Distributed under the MIT License [ https://opensource.org/licenses/MIT ]
+#==============================================================================
 from matplotlib.pyplot import figure, show
 from numpy import arange, sin, pi
 
@@ -10,13 +15,6 @@ ax1 = fig.add_subplot(311)
 ax1.plot(t, input)
 ax1.grid(True)
 ax1.set_ylim((-1, 1))
-# ax1.set_ylabel('Value')
-# ax1.set_title('Input')
-
-# for label in ax1.get_xticklabels():
-#     label.set_color('r')
-
-
 
 class zero_cross:
    def __init__(self):
@@ -36,7 +34,6 @@ ax2 = fig.add_subplot(312)
 ax2.plot(t, trig)
 ax2.grid(True)
 ax2.set_ylim((-0.1, 1.1))
-# l = ax2.set_xlabel('Zero Crossing')
 
 def count_ones(l):
    r = 0
@@ -57,7 +54,6 @@ ax3 = fig.add_subplot(313)
 ax3.plot(results)
 ax3.grid(True)
 ax3.set_ylim((-5, 80))
-# l = ax3.set_xlabel('Result')
 
 show()
 
