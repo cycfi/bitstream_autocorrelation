@@ -146,7 +146,7 @@ int main ()
    // Generate a test signal
 
    constexpr float noise_level = 0.0;     // Noise level (dB)
-   constexpr float _1st_level = 0.3;      // First harmonic level
+   constexpr float _1st_level = 0.3;      // Fundamental level
    constexpr float _2nd_level = 0.4;      // Second harmonic level
    constexpr float _3rd_level = 0.3;      // Third harmonic level
 
